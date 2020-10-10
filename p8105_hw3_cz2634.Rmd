@@ -29,7 +29,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ```
 
-# Probalem 1
+## Probalem 1
 ```{r message = FALSE, echo = FALSE}
 data("instacart")
 ```
@@ -95,7 +95,7 @@ instacart %>%
 	)
 ```
 
-# Probalem 2
+## Probalem 2
 #### 2.1 Load, tidy, and otherwise wrangle the data
 ```{r message = FALSE, echo = FALSE}
 #Load, tidy, and otherwise wrangle the data
@@ -123,6 +123,7 @@ accel_df =
   
   mutate(
     day = forcats::fct_relevel(day,"Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday","Sunday")) 
+accel_df
 ```
 
 * This dataset includes `r nrow(accel_df)` rows and `r ncol(accel_df)`. It is consist of variabels：`r names(accel_df)`.
@@ -138,15 +139,16 @@ accel_df2 = accel_df %>%
     values_from = total_counts) %>% 
   mutate(total_week = sum(Monday:Sunday)) %>% 
   knitr::kable(digits = 2)
+accel_df2
 ```
-* comment...
+*The table shows that the men does less activities on weekend than on weekdays.
 
 #### 2.3 single-panel plot
 ```{r message = FALSE, echo = FALSE}
 #a single-panel plot that shows the 24-hour activity time courses for each day 
 #use color to indicate day of the week
 #Describe in words any patterns or conclusions 
-accel_df %>% 
+accel_df3 = accel_df %>% 
   ggplot(aes(x = minute, y = ac_counts, color = day)) +
   geom_smooth(se = F) +
   labs(
@@ -158,9 +160,151 @@ accel_df %>%
                     breaks = c(120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200, 1320, 1440),
                     labels = c("2h", "4h", "6h", "8h", "10h", "12h","14h", "16h", "18h","20h", "22h", "24h")) +
   scale_y_continuous(name = "Activities in minutes",trans = "sqrt")
+accel_df3
 ```
 
 * As is shown in the graph, the men usually does activity frequently from 8am to 9pm in weekdays. During weekend, he has less activity time on Saturday, while much activity time in Sunday morning. 
 
-# Problem 3
+## Problem 3
+#### 3.1 Data cleaning 
+```{r message = FALSE, echo = FALSE}
+data("ny_noaa")
+```
+
+```{r data cleaning, message = FALSE, echo = FALSE}
+#Create separate variables for year, month, and day
+#temperature, precipitation, and snowfall are given in reasonable units
+ny_noaa_df = ny_noaa %>% 
+  mutate_at(vars(date), as.factor) %>% 
+  mutate_at(vars(tmax, tmin, prcp, snow), as.numeric) %>%
+  separate(date, into = c("year", "month", "day")) %>% 
+  mutate_at(vars(year, month, day), as.factor) %>% 
+  mutate(
+    prcp = prcp/10,
+    tmax = tmax/10,
+    tmin = tmin/10,
+    snow = case_when(
+      snow <0 ~0,
+      snow >= 0 ~snow))
+skimr::skim_without_charts(ny_noaa_df)
+```
+
+```{r snowfall, message = FALSE, echo = FALSE}
+snow_df = ny_noaa_df %>% 
+  count(snow, na.rm = T) %>% 
+  mutate(rank = min_rank(desc(n))) 
+snow_df
+```
+
+* The dataset is consist of `r nrow(ny_noaa_df)` rows and `r ncol(ny_noaa_df)` columns. It contains variables: `r names(ny_noaa_df)`. For snowfall, the most commonly observed value is 0. As is shown in the snow_df, there are 2,008,509 out of 2,595,176 days without snow, which rank 1.
+
+
+#### 3.2 Average max temperature in January and in July 
+
+```{r Jan_avg_temp, message = FALSE, echo = FALSE}
+Jan_avg_temp = ny_noaa_df %>% 
+  filter(month == "01") %>% 
+  group_by(year, month, id) %>% 
+  summarise(avg_tmax = mean(tmax,na.rm = T)) %>% 
+  drop_na() %>% 
+ggplot(aes(x = year, y = avg_tmax, color = id)) +
+  geom_point(alpha = 0.3, size = 0.1) +
+  geom_path(aes(group = id), alpha = 0.3) +
+  theme(
+    plot.title = element_text(lineheight = 4, color = "black"),
+    legend.position = 'none',
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "The average max temperature in January in each station across years",
+    x = "Year",
+    y = "Average max temperature")
+```
+*January outliers
+```{r january outliers, message = FALSE, echo = FALSE, collapse = TRUE} 
+ny_noaa_df %>% 
+  filter(month == "01") %>% 
+  group_by(year, month, id) %>% 
+  summarise(avg_tmax = mean(tmax,na.rm = T)) %>% 
+  drop_na() %>% 
+  filter(avg_tmax > 10 | avg_tmax < -10) %>% 
+  knitr::kable(digits = 1)
+```
+
+```{r message = FALSE, echo = FALSE}
+jul_avg_temp = ny_noaa_df %>% 
+  filter(month == "07") %>% 
+  group_by(year, month, id) %>% 
+  summarise(avg_tmax = mean(tmax,na.rm = T)) %>% 
+  drop_na() %>% 
+ggplot(aes(x = year, y = avg_tmax, color = id)) +
+  geom_point(alpha = 0.3, size = 0.1) +
+  geom_path(aes(group = id), alpha = 0.3) +
+  theme(
+    plot.title = element_text(lineheight = 4, color = "black"),
+    legend.position = 'none',
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "The average max temperature in July in each station across years",
+    x = "Year",
+    y = "Average max temperature")
+```
+
+*July outliers
+```{r july outliers, message = FALSE, echo = FALSE, collapse = TRUE} 
+ny_noaa_df %>% 
+  filter(month == "07") %>% 
+  group_by(year, month, id) %>% 
+  summarise(avg_tmax = mean(tmax,na.rm = T)) %>% 
+  drop_na() %>% 
+  filter(avg_tmax > 33 | avg_tmax < 20) %>% 
+  knitr::kable(digits = 1)
+```
+
+```{r}
+Jan_avg_temp/jul_avg_temp
+```
+
+* "The average max temperature in July in each station across years" shows that it is relatively low temperature in 1994,2004, and relatively high temperature in 1990,1995,1998,2002,2006. "The average max temperature in July in each station across years" shows that it is relatively low temperature in 1988,1992,2000 and relatively high temperature in 1983,1999,2010. According to the graph, we can easily see that average max temperature in both January and July over year are fluctuated. The temperature fluctuate between -13.4 to 10.2, while the temperature fluctuate between 14.0 to 33.6.
+
+#### 3.3 
+*plot showing tmax vs tmin for the full dataset 
+*plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year
+```{r message = FALSE, echo = FALSE, collapse = TRUE}
+temp_df = ny_noaa_df %>% 
+  drop_na() %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "tmax_tmin",
+    values_to = "temperature") %>% 
+  ggplot(aes(x = year, y = temperature)) +
+  geom_boxplot(aes(color = tmax_tmin), alpha = 0.4, outlier.size = 0.1)+
+  theme(
+    legend.position = 'right',
+    plot.title = element_text(lineheight = 4, color = "black", size = 20),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10)) +
+  labs(title = "The average max temperature in July in each station across years",
+    x = "Year",
+    y = "tmax vs tmin for the full dataset")
+```
+
+```{r message = FALSE, echo = FALSE, collapse = TRUE}
+snowfall_df = ny_noaa_df %>% 
+  filter(snow < 100 & snow > 0) %>% 
+  drop_na() %>% 
+  ggplot(aes(x = year, y = snow)) + 
+  geom_violin(color = "black", fill = "green", alpha = .5)+
+  theme(
+    plot.title = element_text(lineheight = 4, color = "black", size = 20),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(
+    title = "The distribution of snowfall values over year",
+    x = "Year",
+    y = "Snowfall (mm)")
+```
+*two-panel plot
+```{r}
+(temp_df / snowfall_df) + plot_layout(widths = 10, heights = 20)
+```
+
+* The temp_df shows that the maximum temperatures over years have a larger range between the Q1 to Q3 than the minimum temperature, according to the width of the box. However, the minimum temperatures over years have larger range from Q1 to Q4, as they have more outliers.
+* The snowfall_df shows the values of snowfall concentrate on 0-25mm, 50mm, 75mm.  The fluctuation of snowfall over years are stable. 
+
 
