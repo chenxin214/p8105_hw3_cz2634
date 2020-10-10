@@ -162,3 +162,5 @@ accel_df %>%
 
 * As is shown in the graph, the men usually does activity frequently from 8am to 9pm in weekdays. During weekend, he has less activity time on Saturday, while much activity time in Sunday morning. 
 
+# Problem 3
+
