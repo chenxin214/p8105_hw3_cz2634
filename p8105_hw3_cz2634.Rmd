@@ -8,6 +8,24 @@ output: html_document
 ```{r setup, message = FALSE, echo = FALSE}
 library(p8105.datasets)
 library(tidyverse)
+library(readxl)
+library(dplyr)
+library(rnoaa)
+library(ggridges)
+library(patchwork)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 
 ```
 
@@ -16,13 +34,15 @@ library(tidyverse)
 data("instacart")
 ```
 
-This dataset contains `r nrow(instacart)` rows and ... columns. 
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns. 
 
 Observations are the level of items in orders by user. There are user / order variables -- user ID, order ID, order day, and order hour. There are also item variables -- name, aisle, department, and some numeric codes. 
 
 How many aisles, and which are most items from?
 
 ```{r message = FALSE, echo = FALSE}
+# count how many aisle 
+# arrange the number of items of aisles  by decreasing
 instacart %>% 
 	count(aisle) %>% 
 	arrange(desc(n))
@@ -32,6 +52,9 @@ instacart %>%
 Let's make a plot
 
 ```{r message = FALSE, echo = FALSE}
+# limiting this to aisles with more than 10000 items
+# theme()rearrange x-axis
+# how ggplot put things in order: reorder facter aisle by n
 instacart %>% 
 	count(aisle) %>% 
 	filter(n > 10000) %>% 
@@ -48,6 +71,7 @@ instacart %>%
 Let's make a table!!
 
 ```{r message = FALSE, echo = FALSE}
+#group product name by aisles at first then  count
 instacart %>% 
 	filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
 	group_by(aisle) %>% 
@@ -57,7 +81,6 @@ instacart %>%
 	arrange(aisle, rank) %>% 
 	knitr::kable()
 ```
-
 
 Apples vs ice cream..
 
@@ -71,3 +94,71 @@ instacart %>%
 		values_from = mean_hour
 	)
 ```
+
+# Probalem 2
+#### 2.1 Load, tidy, and otherwise wrangle the data
+```{r message = FALSE, echo = FALSE}
+#Load, tidy, and otherwise wrangle the data
+#include a weekday vs weekend variable
+#describe the resulting dataset 
+accel_df =
+  read_csv("./data/accel_data.csv") %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "minute",
+    names_prefix = "activity_",
+    values_to = "ac_counts") %>% 
+  mutate(
+    week = as.factor(week),
+    minute = as.integer(minute),
+    day = as.factor(day),
+    day_id = as.factor(day_id) ) %>% 
+  
+  mutate(
+    weekday_weekend = case_when(
+      day %in% c("Monday","Tuesday","Wednesday","Turthday","Friday") ~ "weekday",
+      day %in% c("Saturday", "Sunday") ~ "weekend"), 
+    weekday_weekend = factor(weekday_weekend)) %>% 
+  
+  mutate(
+    day = forcats::fct_relevel(day,"Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday","Sunday")) 
+```
+
+* This dataset includes `r nrow(accel_df)` rows and `r ncol(accel_df)`. It is consist of variabels：`r names(accel_df)`.
+
+#### 2.2 the total activity over the day
+```{r message = FALSE, echo = FALSE}
+#the total activity over the day.
+accel_df2 = accel_df %>% 
+  group_by(week, day) %>% 
+  summarize(total_counts = sum(ac_counts)) %>% 
+  pivot_wider(
+    names_from = day,
+    values_from = total_counts) %>% 
+  mutate(total_week = sum(Monday:Sunday)) %>% 
+  knitr::kable(digits = 2)
+```
+* comment...
+
+#### 2.3 single-panel plot
+```{r message = FALSE, echo = FALSE}
+#a single-panel plot that shows the 24-hour activity time courses for each day 
+#use color to indicate day of the week
+#Describe in words any patterns or conclusions 
+accel_df %>% 
+  ggplot(aes(x = minute, y = ac_counts, color = day)) +
+  geom_smooth(se = F) +
+  labs(
+    title = "Total activities in a day over 35 days",
+    caption = "Data from accelerometer") +
+   viridis::scale_color_viridis(discrete = T,
+                               name = "Day") +
+  scale_x_continuous(name = "Time(h)",
+                    breaks = c(120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200, 1320, 1440),
+                    labels = c("2h", "4h", "6h", "8h", "10h", "12h","14h", "16h", "18h","20h", "22h", "24h")) +
+  scale_y_continuous(name = "Activities in minutes",trans = "sqrt")
+```
+
+* As is shown in the graph, the men usually does activity frequently from 8am to 9pm in weekdays. During weekend, he has less activity time on Saturday, while much activity time in Sunday morning. 
+
