@@ -2,7 +2,7 @@
 title: "P8105 Homework 3"
 author: Chenxin Zhang
 date: 10/10/2020
-output: html_document
+output: github_document
 ---
 
 ```{r setup, message = FALSE, echo = FALSE}
