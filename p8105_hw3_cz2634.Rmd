@@ -258,7 +258,7 @@ ny_noaa_df %>%
   knitr::kable(digits = 1)
 ```
 
-```{r}
+```{r message = FALSE, echo = FALSE, collapse = TRUE}
 Jan_avg_temp/jul_avg_temp
 ```
 
@@ -300,7 +300,7 @@ snowfall_df = ny_noaa_df %>%
     y = "Snowfall (mm)")
 ```
 *two-panel plot
-```{r}
+```{r message = FALSE, echo = FALSE, collapse = TRUE}
 (temp_df / snowfall_df) + plot_layout(widths = 10, heights = 20)
 ```
 
